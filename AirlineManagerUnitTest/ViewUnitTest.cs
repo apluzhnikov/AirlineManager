@@ -56,6 +56,24 @@ namespace BA.Airline.AP.UnitTest
             Assert.IsFalse(_AirlineManager.Add(fieldsValues, new Flight(), new Passenger[0]));
         }
 
+        [TestMethod]
+        public void ValidateLine()
+        {
+            var line = string.Empty;
+
+            line = "Number eq 35";
+            //line = "Numbereq 35";
+            _AirlineManager.ValidateOption(line);
+            line = "Arrival eq 22.10.2014 00:05:06";
+            //line = "Arrival eq 22.10 00:05:06";
+            _AirlineManager.ValidateOption(line);
+            line = "Status eq CanCelEd";
+            //line = "Status eq Caffnceled";
+
+            _AirlineManager.ValidateOption(line);
+            Assert.IsFalse(HasError);
+        }
+
         private void DisplayInfoChanged(object sender, AirlineObjectEventArgs e) {
             HasError = e.HasError;
         }

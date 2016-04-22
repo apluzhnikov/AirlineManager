@@ -50,5 +50,7 @@ namespace AirlineLibrary
 
         bool MultipleOption { get; }
         IAirlineManager CurrentAirlineManager { get; }
+
+        void ValidateOption(string line);
     }
 }

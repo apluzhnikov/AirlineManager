@@ -547,6 +547,74 @@ namespace AirlineLibrary.Model
             return false;
         }
 
+        private void RaiseErrorMessage(string errorMessage)
+        {
+            OnDisplayInfoChanged(new AirlineObjectEventArgs
+            {
+                HasError = true,
+                ConsoleColor = ConsoleColor.Red,
+                DisplayInfo = errorMessage
+            });
+        }
+
+        const string errorValidationMessage = "The line above is invalid and object you are trying to manipulate won't be processed corectly. We strongly recommend you to press 'Enter' button and start the operation again!";
+
+        public void ValidateOption(string line)
+        {
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                var FieldsValuesSearch = GetAirlineObjectInfo(new string[] { line });
+                if (FieldsValuesSearch.Length > 0)
+                {
+                    var type = AirlineObjects.GetType().GetElementType();
+                    var airlineObject = Activator.CreateInstance(type) as AirlineObject;
+                    try
+                    {
+                        var fieldType = airlineObject[FieldsValuesSearch[0][fieldNameIndex]].GetType();
+
+                        var value = new object();
+                        var lineValue = FieldsValuesSearch[0][fieldValueIndex];
+                        if (fieldType.IsEnum)
+                        {
+                            var enumString = char.ToUpper(lineValue[0]) + lineValue.Substring(1).ToLower();
+                            value = Enum.Parse(fieldType, enumString);
+                        }
+                        else
+                        {
+                            switch (Type.GetTypeCode(fieldType))
+                            {
+                                case TypeCode.Int32:
+                                    value = Convert.ToInt32(lineValue);
+                                    break;
+                                case TypeCode.DateTime:
+                                    value = Convert.ToDateTime(lineValue);
+                                    break;
+                                default:
+                                    value = lineValue;
+                                    break;
+                            }
+                        }
+
+                        airlineObject[FieldsValuesSearch[0][fieldNameIndex]] = value;
+                        if (!object.Equals(airlineObject[FieldsValuesSearch[0][fieldNameIndex]], value))
+                            RaiseErrorMessage(errorValidationMessage);
+
+
+                    }
+                    catch (Exception ex)
+                    {
+                        RaiseErrorMessage(errorValidationMessage);
+                    }
+                    //ValidateOption(FieldsValuesSearch);
+                }
+                else
+                    RaiseErrorMessage(errorValidationMessage);
+            }
+
+        }
+
+        //abstract void ValidateOption(string[][] fieldsValuesSearch);
+
         public bool NeedOption { get; protected set; }
         public bool MultipleOption { get; protected set; }
         public int IndexOfCurrentAirlineManager { get; protected set; }

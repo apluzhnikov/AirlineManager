@@ -51,7 +51,7 @@ namespace AirlineManager
                 if (airlineManager.NeedOption)
                 {
                     if (!airlineManager.IsServiceOptionNow)
-                        options = GetOptionsFromConsole(airlineManager.MultipleOption, airlineManager.Properties);
+                        options = GetOptionsFromConsole(airlineManager);
                     else
                         options = new string[] { Console.ReadLine() };
                 }
@@ -82,7 +82,7 @@ namespace AirlineManager
         /// <param name="multiple">If should be more than one property</param>
         /// <param name="properties">List of properties for autofilling</param>
         /// <returns>Array of entered values</returns>
-        private static string[] GetOptionsFromConsole(bool multiple, string[] properties)
+        private static string[] GetOptionsFromConsole(IAirlineManager airlineManager)
         {
             StringBuilder options = new StringBuilder();
             string line = string.Empty;
@@ -106,11 +106,10 @@ namespace AirlineManager
 
                         ClearCurrentConsoleLine();
 
-                        line = properties.FirstOrDefault(arg => arg.StartsWith(line, StringComparison.InvariantCultureIgnoreCase));
+                        line = airlineManager.Properties.FirstOrDefault(arg => arg.StartsWith(line, StringComparison.InvariantCultureIgnoreCase));
                         if (!string.IsNullOrWhiteSpace(line))
                         {
                             WriteOptionName(line, position, Console.CursorTop);
-
                         }
 
 
@@ -135,8 +134,10 @@ namespace AirlineManager
                     line += Console.ReadLine();
 
                 options.Append(line + ";");
-                if (!multiple)
+                if (!airlineManager.MultipleOption)
                     break;
+                else
+                    airlineManager.ValidateOption(line);
 
             } while (!string.IsNullOrWhiteSpace(line));
 
