@@ -12,6 +12,7 @@ namespace AirlineManager
     {
         static void Main(string[] args)
         {
+            args = new string [] { "3" };
             InitializeConsole();
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("You are welcome to use Airline manager 2.0");
@@ -122,10 +123,13 @@ namespace AirlineManager
                         }
                     }
                     else {
-                        line += " ";
-                        ClearCurrentConsoleLine();
-                        Console.Write(line);
-                        break;
+                        if (string.IsNullOrWhiteSpace(line)) ClearCurrentConsoleLine();
+                        else {
+                            line += " ";
+                            ClearCurrentConsoleLine();
+                            Console.Write(line);
+                            break;
+                        }
                     }
 
                 } while (true);
@@ -133,11 +137,16 @@ namespace AirlineManager
                 if (!string.IsNullOrWhiteSpace(line))
                     line += Console.ReadLine();
 
-                options.Append(line + ";");
+
                 if (!airlineManager.MultipleOption)
+                {
+                    options.Append(line + ";");
                     break;
-                else
-                    airlineManager.ValidateOption(line);
+                }
+                else {
+                    if(airlineManager.ValidateOption(line))
+                        options.Append(line + ";");
+                }
 
             } while (!string.IsNullOrWhiteSpace(line));
 

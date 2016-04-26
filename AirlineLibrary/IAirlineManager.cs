@@ -38,7 +38,7 @@ namespace AirlineLibrary
         string[] Properties { get; }
 
         bool Find(string[] FieldsValues);        
-        bool Add(string[] FieldsValues, AirlineObject airlineObject, AirlineObject[] airlineObjects);
+        bool Add(string[] FieldsValues);
         bool Edit(string[] FieldsValues);
         bool Delete(AirlineObject airlineObject);
 
@@ -51,6 +51,6 @@ namespace AirlineLibrary
         bool MultipleOption { get; }
         IAirlineManager CurrentAirlineManager { get; }
 
-        void ValidateOption(string line);
+        bool ValidateOption(string line);
     }
 }

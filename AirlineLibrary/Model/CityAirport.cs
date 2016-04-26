@@ -17,18 +17,19 @@ namespace AirlineLibrary.Model
 
 
 
-        private static readonly AirlineOptions[] s_general = { AirlineOptions.ShowAllFlights, AirlineOptions.ShowArrivals, AirlineOptions.ShowDepartues, AirlineOptions.SearchFlights, AirlineOptions.AddAFlight, AirlineOptions.ClearTheConsole, AirlineOptions.Info, AirlineOptions.LoadFromFile, AirlineOptions.SaveToFile, AirlineOptions.ExitOrLevelUp };
-        private static readonly AirlineOptions[] s_edit = { AirlineOptions.EditTheFlight, AirlineOptions.DeleteTheFlight, AirlineOptions.EditPassangersOfTheFlight, AirlineOptions.SearchFlights, AirlineOptions.AddAFlight };
-        private static readonly AirlineOptions[] s_service = { AirlineOptions.LoadFromFile, AirlineOptions.SaveToFile };
+        private static readonly List<AirlineOptions> s_general = new List<AirlineOptions> { AirlineOptions.ShowAllFlights, AirlineOptions.ShowArrivals, AirlineOptions.ShowDepartues, AirlineOptions.SearchFlights, AirlineOptions.AddAFlight, AirlineOptions.ClearTheConsole, AirlineOptions.Info, AirlineOptions.LoadFromFile, AirlineOptions.SaveToFile, AirlineOptions.ExitOrLevelUp };
+        private static readonly List<AirlineOptions> s_edit = new List<AirlineOptions> { AirlineOptions.EditTheFlight, AirlineOptions.DeleteTheFlight, AirlineOptions.EditPassangersOfTheFlight, AirlineOptions.SearchFlights, AirlineOptions.AddAFlight };
+        private static readonly List<AirlineOptions> s_service = new List<AirlineOptions> { AirlineOptions.LoadFromFile, AirlineOptions.SaveToFile };
 
-        private static readonly AirlineOptions[] s_noNeedOptions = { AirlineOptions.ShowAllFlights, AirlineOptions.ShowArrivals, AirlineOptions.ShowDepartues, AirlineOptions.ClearTheConsole, AirlineOptions.Info, AirlineOptions.ExitOrLevelUp };
-        private static readonly AirlineOptions[] s_multipleOptions = { AirlineOptions.EditTheFlight, AirlineOptions.AddAFlight };
+        private static readonly List<AirlineOptions> s_noNeedOptions = new List<AirlineOptions> { AirlineOptions.ShowAllFlights, AirlineOptions.ShowArrivals, AirlineOptions.ShowDepartues, AirlineOptions.ClearTheConsole, AirlineOptions.Info, AirlineOptions.ExitOrLevelUp };
+        private static readonly List<AirlineOptions> s_multipleOptions = new List<AirlineOptions> { AirlineOptions.EditTheFlight, AirlineOptions.AddAFlight };
 
         public CityAirport()
         {
-            Options = s_general;
+            Options = new List<AirlineOptions>();
+            Options.AddRange(s_general);
 
-            AirlineObjects = new Flight[MaxFlights];
+            AirlineObjects = new List<AirlineObject>();
 
             CurrentAirlineManager = this;
             CurrentAirlineObjects = AirlineObjects;
@@ -53,7 +54,7 @@ namespace AirlineLibrary.Model
 
             for (int i = 0; i < sizeOfFlights; i++)
             {
-                AirlineObjects[i] = new Flight(MaxFlights)
+                AirlineObjects.Add(new Flight(MaxFlights)
                 {
                     Type = (i > 2) ? FlightType.Arrival : FlightType.Departure,
                     Airline = "test",
@@ -65,7 +66,7 @@ namespace AirlineLibrary.Model
                     Number = "72" + 2 * i,
                     Status = (i < 9) ? (FlightStatus)i : (FlightStatus)8,
                     Terminal = "F" + i
-                };
+                });
             }
         }
 
@@ -121,7 +122,7 @@ namespace AirlineLibrary.Model
                             tableView[i + 1, 8] = flight.Gate;
                             tableView[i + 1, 9] = flight.Status.ToString();
                             tableView[i + 1, 10] = flight.Type.ToString();
-                            tableView[i + 1, 11] = flight.AirlineObjects.Count(arg => arg != null).ToString() + "/" + flight.AirlineObjects.Length.ToString();
+                            tableView[i + 1, 11] = flight.AirlineObjects.Count(arg => arg != null).ToString() + "/" + flight.Size;
                         }
                     }
                     return tableView;
@@ -130,11 +131,11 @@ namespace AirlineLibrary.Model
             }
         }
 
-        protected override AirlineOptions[] MultipleOptions { get { return s_multipleOptions; } }
+        protected override List<AirlineOptions> MultipleOptions { get { return s_multipleOptions; } }
 
-        protected override AirlineOptions[] NoNeedOptions { get { return s_noNeedOptions; } }
+        protected override List<AirlineOptions> NoNeedOptions { get { return s_noNeedOptions; } }
 
-        protected override AirlineOptions[] EditableOptions { get { return s_edit; } }
+        protected override List<AirlineOptions> EditableOptions { get { return s_edit; } }
 
         public override string[] Properties
         {
@@ -172,7 +173,7 @@ namespace AirlineLibrary.Model
             if (!string.IsNullOrWhiteSpace(view))
                 OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = view });
             return view;
-        }        
+        }
 
         public override void ProcessOptions(string[] values)
         {
@@ -181,30 +182,30 @@ namespace AirlineLibrary.Model
             {
 
                 case AirlineOptions.ShowAllFlights:
-                    CurrentAirlineObjects = AirlineObjects.Where(arg => (arg as Flight) != null).ToArray();
-                    if (CurrentAirlineObjects.Length > 0)
+                    CurrentAirlineObjects = AirlineObjects.Where(arg => (arg as Flight) != null).ToList();
+                    if (CurrentAirlineObjects.Count > 0)
                     {
-                        Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                        s_edit.CopyTo(Options, 0);
-                        s_general.CopyTo(Options, s_edit.Length);
+                        Options.Clear();
+                        Options.AddRange(s_edit);
+                        Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     }
                     break;
                 case AirlineOptions.ShowArrivals:
-                    CurrentAirlineObjects = AirlineObjects.Where(arg => (arg as Flight) != null && ((Flight)arg).Type == FlightType.Arrival).ToArray();
-                    if (CurrentAirlineObjects.Length > 0)
+                    CurrentAirlineObjects = AirlineObjects.Where(arg => (arg as Flight) != null && ((Flight)arg).Type == FlightType.Arrival).ToList();
+                    if (CurrentAirlineObjects.Count > 0)
                     {
-                        Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                        s_edit.CopyTo(Options, 0);
-                        s_general.CopyTo(Options, s_edit.Length);
+                        Options.Clear();
+                        Options.AddRange(s_edit);
+                        Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     }
                     break;
                 case AirlineOptions.ShowDepartues:
-                    CurrentAirlineObjects = AirlineObjects.Where(arg => (arg as Flight) != null && ((Flight)arg).Type == FlightType.Departure).ToArray();
-                    if (CurrentAirlineObjects.Length > 0)
+                    CurrentAirlineObjects = AirlineObjects.Where(arg => (arg as Flight) != null && ((Flight)arg).Type == FlightType.Departure).ToList();
+                    if (CurrentAirlineObjects.Count > 0)
                     {
-                        Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                        s_edit.CopyTo(Options, 0);
-                        s_general.CopyTo(Options, s_edit.Length);
+                        Options.Clear();
+                        Options.AddRange(s_edit);
+                        Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     }
                     break;
                 case AirlineOptions.SearchFlights:
@@ -214,24 +215,24 @@ namespace AirlineLibrary.Model
                     }
                     else
                         OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Empty values provided", ConsoleColor = ConsoleColor.Red, HasError = true });
-                    Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                    s_edit.CopyTo(Options, 0);
-                    s_general.CopyTo(Options, s_edit.Length);
+                    Options.Clear();
+                    Options.AddRange(s_edit);
+                    Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     break;
                 case AirlineOptions.AddAFlight:
                     if (values.Length > 0)
                     {
-                        if (Add(values, new Flight(), new Passenger[0]))
+                        if (Add(values))
                             OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "The Flight has been added successfully", ConsoleColor = ConsoleColor.Green });
                         else
                             OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "The Flight wasn't added", ConsoleColor = ConsoleColor.Red, HasError = true });
                     }
                     else
                         OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Empty values provided", ConsoleColor = ConsoleColor.Red, HasError = true });
-                    CurrentAirlineObjects = AirlineObjects.ToArray();
-                    Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                    s_edit.CopyTo(Options, 0);
-                    s_general.CopyTo(Options, s_edit.Length);
+                    CurrentAirlineObjects = AirlineObjects;
+                    Options.Clear();
+                    Options.AddRange(s_edit);
+                    Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     break;
                 case AirlineOptions.EditTheFlight:
                     if (values.Length > 0)
@@ -241,16 +242,16 @@ namespace AirlineLibrary.Model
                     }
                     else
                         OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Empty values provided", ConsoleColor = ConsoleColor.Red, HasError = true });
-                    CurrentAirlineObjects = AirlineObjects.ToArray();
-                    Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                    s_edit.CopyTo(Options, 0);
-                    s_general.CopyTo(Options, s_edit.Length);
+                    CurrentAirlineObjects = AirlineObjects;
+                    Options.Clear();
+                    Options.AddRange(s_edit);
+                    Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     break;
                 case AirlineOptions.EditPassangersOfTheFlight:
                     if (values.Length > 0)
                     {
                         var optionsArray = values[0].Split(' ');
-                        if ((optionsArray.Length == 3) && (int.TryParse(optionsArray[2], out id)) && (id > 0) && (id < CurrentAirlineObjects.Length + 1))
+                        if ((optionsArray.Length == 3) && (int.TryParse(optionsArray[2], out id)) && (id > 0) && (id < CurrentAirlineObjects.Count + 1))
                         {
                             var flight = CurrentAirlineObjects[id - 1] as Flight;
                             if (flight != null)
@@ -261,42 +262,45 @@ namespace AirlineLibrary.Model
                         }
                     }
                     CurrentAirlineObjects = null;
-                    Options = s_general;
+                    Options = new List<AirlineOptions>();
+                    Options.AddRange(s_general);
                     break;
                 case AirlineOptions.DeleteTheFlight:
                     if (values.Length > 0)
                     {
                         var optionsArray = values[0].Split(' ');
-                        if ((optionsArray.Length == 3) && (int.TryParse(optionsArray[2], out id)) && (id > 0) && (id < CurrentAirlineObjects.Length + 1))
+                        if ((optionsArray.Length == 3) && (int.TryParse(optionsArray[2], out id)) && (id > 0) && (id < CurrentAirlineObjects.Count + 1))
                         {
                             if (Delete(CurrentAirlineObjects[id - 1]))
                             {
-                                CurrentAirlineObjects = AirlineObjects.ToArray();
+                                CurrentAirlineObjects = AirlineObjects;
                                 OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Removed Successfully" });
                             }
                         }
                     }
                     else
                         OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Empty values provided", ConsoleColor = ConsoleColor.Red, HasError = true });
-                    Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                    s_edit.CopyTo(Options, 0);
-                    s_general.CopyTo(Options, s_edit.Length);
+                    Options.Clear();
+                    Options.AddRange(s_edit);
+                    Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     break;
                 case AirlineOptions.ClearTheConsole:
                     OnDisplayInfoChanged(new AirlineObjectEventArgs { ClearConsole = true });
                     CurrentAirlineObjects = null;
-                    Options = s_general;
+                    Options = new List<AirlineOptions>();
+                    Options.AddRange(s_general);
                     break;
                 case AirlineOptions.Info:
                     OnDisplayInfoChanged(new AirlineObjectEventArgs
                     {
                         ConsoleColor = ConsoleColor.Yellow,
-                        DisplayInfo = "You are inside Airport manager where you can work with flights and it's info, "+
-                                      "if you would like to receive an information about passanger and edit it, please go to 'Edit passangers of the flight'.\n"+
+                        DisplayInfo = "You are inside Airport manager where you can work with flights and it's info, " +
+                                      "if you would like to receive an information about passanger and edit it, please go to 'Edit passangers of the flight'.\n" +
                                       "In case if you need to exit from Application, just chose 'Exit or level up' menu item"
                     });
                     CurrentAirlineObjects = null;
-                    Options = s_general;
+                    Options = new List<AirlineOptions>();
+                    Options.AddRange(s_general);
                     break;
                 case AirlineOptions.LoadFromFile:
                     if (values.Length > 0)
@@ -306,7 +310,7 @@ namespace AirlineLibrary.Model
                             if (OpenFromFile(values[0]))
                             {
                                 OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Loaded successfully", ConsoleColor = ConsoleColor.Green });
-                                CurrentAirlineObjects = AirlineObjects.ToArray();
+                                CurrentAirlineObjects = AirlineObjects;
                             }
                             else
                                 OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Can't load from file", ConsoleColor = ConsoleColor.Red, HasError = true });
@@ -340,7 +344,8 @@ namespace AirlineLibrary.Model
                 case AirlineOptions.ExitOrLevelUp:
                     CurrentAirlineManager = null;
                     CurrentAirlineObjects = null;
-                    Options = s_general;
+                    Options = new List<AirlineOptions>();
+                    Options.AddRange(s_general);
                     Reset();
                     break;
             }
@@ -361,7 +366,8 @@ namespace AirlineLibrary.Model
                     string text = File.ReadAllText(path);
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        AirlineObjects = JsonConvert.DeserializeObject<Flight[]>(text, new JsonSerializerSettings { ContractResolver = new AirlineManagerContractResolver() });
+                        //AirlineObjects = JsonConvert.DeserializeObject<List<Flight>>(text, new JsonSerializerSettings { ContractResolver = new AirlineManagerContractResolver() });
+                        AirlineObjects = JsonConvert.DeserializeObject<List<AirlineObject>>(text, new JsonSerializerSettings { ContractResolver = new AirlineManagerContractResolver() });
                         return true;
                     }
                 }
@@ -408,6 +414,11 @@ namespace AirlineLibrary.Model
         {
             return true;
         }
+
+        protected override Type GetElementType()
+        {
+            return typeof(Flight);
+        }
     }
-    
+
 }

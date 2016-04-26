@@ -26,12 +26,12 @@ namespace AirlineLibrary.Model
         #endregion
 
 
-        private static readonly AirlineOptions[] s_general = { AirlineOptions.ShowPassangers, AirlineOptions.SearchPassangers, AirlineOptions.AddAPassanger, AirlineOptions.ClearTheConsole, AirlineOptions.Info, AirlineOptions.ExitOrLevelUp };
-        private static readonly AirlineOptions[] s_edit = { AirlineOptions.EditThePassanger, AirlineOptions.DeleteThePassanger, AirlineOptions.SearchPassangers, AirlineOptions.AddAPassanger, };
+        private static readonly List<AirlineOptions> s_general = new List<AirlineOptions> { AirlineOptions.ShowPassangers, AirlineOptions.SearchPassangers, AirlineOptions.AddAPassanger, AirlineOptions.ClearTheConsole, AirlineOptions.Info, AirlineOptions.ExitOrLevelUp };
+        private static readonly List<AirlineOptions> s_edit = new List<AirlineOptions> { AirlineOptions.EditThePassanger, AirlineOptions.DeleteThePassanger, AirlineOptions.SearchPassangers, AirlineOptions.AddAPassanger, };
         //private static readonly string[] s_all = { "Edit the passanger", "Delete the passanger", "Edit passangers of the flight", "Show Arrivals", "Show Departues", "Search flights", "Add a flight", "Clear console", "Info", "Exit/Level Up" };
 
-        private static readonly AirlineOptions[] s_noNeedOptions = { AirlineOptions.ShowPassangers, AirlineOptions.ClearTheConsole, AirlineOptions.Info, AirlineOptions.ExitOrLevelUp };
-        private static readonly AirlineOptions[] s_multipleOptions = { AirlineOptions.EditThePassanger, AirlineOptions.AddAPassanger };
+        private static readonly List<AirlineOptions> s_noNeedOptions = new List<AirlineOptions> { AirlineOptions.ShowPassangers, AirlineOptions.ClearTheConsole, AirlineOptions.Info, AirlineOptions.ExitOrLevelUp };
+        private static readonly List<AirlineOptions> s_multipleOptions = new List<AirlineOptions> { AirlineOptions.EditThePassanger, AirlineOptions.AddAPassanger };
 
         public Flight()
         {
@@ -47,14 +47,17 @@ namespace AirlineLibrary.Model
             IndexOfCurrentAirlineManager = -1;
 
             if (AirlineObjects == null)
-                AirlineObjects = new Passenger[_CountOfPassangers];
+                AirlineObjects = new List<AirlineObject>();
+
+            Options = new List<AirlineOptions>();
+            Options.AddRange(s_general);
         }
 
-        protected override AirlineOptions[] MultipleOptions { get { return s_multipleOptions; } }
+        protected override List<AirlineOptions> MultipleOptions { get { return s_multipleOptions; } }
 
-        protected override AirlineOptions[] NoNeedOptions { get { return s_noNeedOptions; } }
+        protected override List<AirlineOptions> NoNeedOptions { get { return s_noNeedOptions; } }
 
-        protected override AirlineOptions[] EditableOptions { get { return s_edit; } }
+        protected override List<AirlineOptions> EditableOptions { get { return s_edit; } }
 
         private int _CountOfPassangers = 100;
 
@@ -63,7 +66,8 @@ namespace AirlineLibrary.Model
             if (passangersCount > 0)
                 _CountOfPassangers = passangersCount;
 
-            AirlineObjects = new Passenger[_CountOfPassangers];
+            AirlineObjects = new List<AirlineObject>();
+            //{ new Passenger() }
         }
 
         public override string[] TableHeader
@@ -160,10 +164,10 @@ namespace AirlineLibrary.Model
             switch (_selectedOption)
             {
                 case AirlineOptions.ShowPassangers:
-                    CurrentAirlineObjects = AirlineObjects.Where(arg => (arg as Passenger) != null).ToArray();
-                    Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                    s_edit.CopyTo(Options, 0);
-                    s_general.CopyTo(Options, s_edit.Length);
+                    CurrentAirlineObjects = AirlineObjects.Where(arg => (arg as Passenger) != null).ToList();
+                    Options.Clear();
+                    Options.AddRange(s_edit);
+                    Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     break;
                 case AirlineOptions.SearchPassangers:
                     if (values.Length > 0)
@@ -172,24 +176,24 @@ namespace AirlineLibrary.Model
                     }
                     else
                         OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Empty values provided", ConsoleColor = ConsoleColor.Red, HasError = true });
-                    Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                    s_edit.CopyTo(Options, 0);
-                    s_general.CopyTo(Options, s_edit.Length);
+                    Options.Clear();
+                    Options.AddRange(s_edit);
+                    Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     break;
                 case AirlineOptions.AddAPassanger:
                     if (values.Length > 0)
                     {
-                        if (Add(values, new Passenger(), null))
+                        if (Add(values))
                             OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "The Passanger has been added successfully", ConsoleColor = ConsoleColor.Green });
                         else
                             OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "The Passanger wasn't added", ConsoleColor = ConsoleColor.Red, HasError = true });
                     }
                     else
                         OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Empty values provided", ConsoleColor = ConsoleColor.Red, HasError = true });
-                    CurrentAirlineObjects = AirlineObjects.ToArray();
-                    Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                    s_edit.CopyTo(Options, 0);
-                    s_general.CopyTo(Options, s_edit.Length);
+                    CurrentAirlineObjects = AirlineObjects;
+                    Options.Clear();
+                    Options.AddRange(s_edit);
+                    Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     break;
                 case AirlineOptions.EditThePassanger:
                     if (values.Length > 0)
@@ -199,52 +203,60 @@ namespace AirlineLibrary.Model
                     }
                     else
                         OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Empty values provided", ConsoleColor = ConsoleColor.Red, HasError = true });
-                    CurrentAirlineObjects = AirlineObjects.ToArray();
-                    Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                    s_edit.CopyTo(Options, 0);
-                    s_general.CopyTo(Options, s_edit.Length);
+                    CurrentAirlineObjects = AirlineObjects;
+                    Options.Clear();
+                    Options.AddRange(s_edit);
+                    Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     break;
                 case AirlineOptions.DeleteThePassanger:
                     if (values.Length > 0)
                     {
                         var optionsArray = values[0].Split(' ');
-                        if ((optionsArray.Length == 3) && (int.TryParse(optionsArray[2], out id)) && (id > 0) && (id < CurrentAirlineObjects.Length + 1))
+                        if ((optionsArray.Length == 3) && (int.TryParse(optionsArray[2], out id)) && (id > 0) && (id < CurrentAirlineObjects.Count + 1))
                         {
                             if (Delete(CurrentAirlineObjects[id - 1]))
                             {
-                                CurrentAirlineObjects = AirlineObjects.ToArray();
+                                CurrentAirlineObjects = AirlineObjects;
                                 OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Removed Successfully" });
                             }
                         }
                     }
                     else
                         OnDisplayInfoChanged(new AirlineObjectEventArgs { DisplayInfo = "Empty values provided", ConsoleColor = ConsoleColor.Red, HasError = true });
-                    Options = new AirlineOptions[s_general.Length + s_edit.Length];
-                    s_edit.CopyTo(Options, 0);
-                    s_general.CopyTo(Options, s_edit.Length);
+                    Options.Clear();
+                    Options.AddRange(s_edit);
+                    Options.AddRange(s_general.Where(arg => Options.IndexOf(arg) < 0));
                     break;
                 case AirlineOptions.ClearTheConsole:
                     OnDisplayInfoChanged(new AirlineObjectEventArgs { ClearConsole = true });
                     CurrentAirlineObjects = null;
-                    Options = s_general;
+                    Options = new List<AirlineOptions>();
+                    Options.AddRange(s_general);
                     break;
                 case AirlineOptions.Info:
                     OnDisplayInfoChanged(new AirlineObjectEventArgs
                     {
                         ConsoleColor = ConsoleColor.Yellow,
-                        DisplayInfo = "You are inside flight where you can work with passangers and it's info, \n" +                                      
+                        DisplayInfo = "You are inside flight where you can work with passangers and it's info, \n" +
                                       "In case if you need to go back to Airline manager, just chose 'Exit or level up' menu item"
                     });
                     CurrentAirlineObjects = null;
-                    Options = s_general;
+                    Options = new List<AirlineOptions>();
+                    Options.AddRange(s_general);
                     break;
                 case AirlineOptions.ExitOrLevelUp:
                     CurrentAirlineManager = null;
                     CurrentAirlineObjects = null;
-                    Options = s_general;
+                    Options = new List<AirlineOptions>();
+                    Options.AddRange(s_general);
                     Reset();
                     break;
             }
+        }
+
+        protected override Type GetElementType()
+        {
+            return typeof(Passenger);
         }
 
         protected override bool CanBeResized()

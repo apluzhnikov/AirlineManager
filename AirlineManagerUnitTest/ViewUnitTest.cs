@@ -38,7 +38,7 @@ namespace BA.Airline.AP.UnitTest
                 "Terminal eq E2"
             };
 
-            Assert.IsTrue(_AirlineManager.Add(fieldsValues, new Flight(), new Passenger[0]));
+            Assert.IsTrue(_AirlineManager.Add(fieldsValues));
         }
 
         [TestMethod]
@@ -53,7 +53,7 @@ namespace BA.Airline.AP.UnitTest
                 "Terminal eq E2"
              };
 
-            Assert.IsFalse(_AirlineManager.Add(fieldsValues, new Flight(), new Passenger[0]));
+            Assert.IsFalse(_AirlineManager.Add(fieldsValues));
         }
 
         [TestMethod]
@@ -69,8 +69,11 @@ namespace BA.Airline.AP.UnitTest
             _AirlineManager.ValidateOption(line);
             line = "Status eq CanCelEd";
             //line = "Status eq Caffnceled";
-
             _AirlineManager.ValidateOption(line);
+
+            /*line = "Arrival 22.10.2014 00:05:06";
+            _AirlineManager.ValidateOption(line);*/
+
             Assert.IsFalse(HasError);
         }
 

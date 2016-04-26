@@ -12,18 +12,20 @@ namespace AirlineLibrary.Model
 {
     public abstract class AirlineManager : AirlineObject, IAirlineManager
     {
-        public AirlineObject[] AirlineObjects { get; protected set; }
+        public List<AirlineObject> AirlineObjects { get; protected set; }
         //public AirlineObject[] AirlineObjects { get; set; }
 
-        protected AirlineObject[] CurrentAirlineObjects;
+        protected List<AirlineObject> CurrentAirlineObjects;
 
         public abstract string[] Properties { get; }
 
-        public AirlineOptions[] Options { get; protected set; }
+        public int Size { get; private set; }
+
+        public List<AirlineOptions> Options { get; protected set; }
         protected AirlineOptions _selectedOption = AirlineOptions.NULL;
-        protected abstract AirlineOptions[] MultipleOptions { get; }
-        protected abstract AirlineOptions[] NoNeedOptions { get; }
-        protected abstract AirlineOptions[] EditableOptions { get; }
+        protected abstract List<AirlineOptions> MultipleOptions { get; }
+        protected abstract List<AirlineOptions> NoNeedOptions { get; }
+        protected abstract List<AirlineOptions> EditableOptions { get; }
         public abstract bool IsServiceOptionNow { get; }
 
         /// <summary>
@@ -57,7 +59,7 @@ namespace AirlineLibrary.Model
         {
             var options = new StringBuilder();
             options.AppendLine("Please select an option");
-            for (int i = 0; i < Options.Length; i++)
+            for (int i = 0; i < Options.Count; i++)
             {
 
 
@@ -84,7 +86,7 @@ namespace AirlineLibrary.Model
         {
             int optionId = 0;
             CurrentAirlineManager = this;
-            if ((int.TryParse(option, out optionId)) && (optionId > 0) && (optionId < Options.Length + 1))
+            if ((int.TryParse(option, out optionId)) && (optionId > 0) && (optionId < Options.Count + 1))
             {
                 //var AirlineOption = Options[optionId - 1];
                 _selectedOption = Options[optionId - 1];
@@ -136,10 +138,9 @@ namespace AirlineLibrary.Model
         {
             try
             {
-                var prevCount = AirlineObjects.Count();
-                var tmpAirlineObjects = AirlineObjects.Where(arg => arg != null && arg.ID != airlineObject.ID).ToArray();
-                Array.Resize(ref tmpAirlineObjects, prevCount);
-                AirlineObjects = tmpAirlineObjects;
+                
+                AirlineObjects = AirlineObjects.Where(arg => arg != null && arg.ID != airlineObject.ID).ToList();
+                
             }
             catch (Exception ex)
             {
@@ -160,9 +161,8 @@ namespace AirlineLibrary.Model
         public virtual bool Find(string[] FieldsValues)
         {
             //var objects = new IAirlineManager[CurrentAirlineObjects.Length];
-            Array.Clear(CurrentAirlineObjects, 0, CurrentAirlineObjects.Length);
+            //Array.Clear(CurrentAirlineObjects, 0, CurrentAirlineObjects.Count);            
             var FieldsValuesSearch = GetAirlineObjectInfo(FieldsValues);
-            var indexOfAirlineObjects = -1;
             try
             {
                 if (FieldsValuesSearch.Length > 0 && !string.IsNullOrWhiteSpace(FieldsValuesSearch[0][fieldNameIndex]) && Properties.Contains(FieldsValuesSearch[0][fieldNameIndex]))
@@ -176,10 +176,7 @@ namespace AirlineLibrary.Model
 
                             if (Search(conditionalType, FieldsValuesSearch[0][fieldValueIndex], airlineObjectPropertyVal))
                             {
-                                if (++indexOfAirlineObjects > CurrentAirlineObjects.Length - 1)
-                                    Array.Resize(ref CurrentAirlineObjects, CurrentAirlineObjects.Length * 2);
-                                CurrentAirlineObjects[indexOfAirlineObjects] = airlineObject;
-
+                                CurrentAirlineObjects.Add(airlineObject);
                             }
                         }
                     }
@@ -260,25 +257,20 @@ namespace AirlineLibrary.Model
         /// <param name="airlineObject">New Airline object for a collection</param>
         /// <param name="airlineObjects">New Airline object's list for a main object if it's a manager</param>
         /// <returns>Positive if added</returns>
-        public virtual bool Add(string[] FieldsValues, AirlineObject airlineObject, AirlineObject[] airlineObjects)
+        public virtual bool Add(string[] FieldsValues)
         {
+            var type = GetElementType();
+            var airlineObject = Activator.CreateInstance(type) as AirlineObject;
+
             var FieldsValuesUpdate = GetAirlineObjectInfo(FieldsValues);
             var index = AirlineObjects.Count(arg => arg != null);
             if (index > -1)
             {
 
-                if (index >= AirlineObjects.Length)
+                if (Size != 0 && Size <= AirlineObjects.Count)
                 {
-                    if (CanBeResized())
-                    {
-                        var tmpAirlineObjects = AirlineObjects;
-                        Array.Resize(ref tmpAirlineObjects, AirlineObjects.Length * 2);
-                        AirlineObjects = tmpAirlineObjects;
-                    }
-                    else {
-                        OnDisplayInfoChanged(new AirlineObjectEventArgs { HasError = true, ConsoleColor = ConsoleColor.Red, DisplayInfo = "Can't add an object, max size reached" });
-                        return false;
-                    }
+                    OnDisplayInfoChanged(new AirlineObjectEventArgs { HasError = true, ConsoleColor = ConsoleColor.Red, DisplayInfo = "Can't add an object, max size reached" });
+                    return false;
                 }
 
                 try
@@ -292,9 +284,9 @@ namespace AirlineLibrary.Model
                             {
                                 int airlineObjectsCount = 0;
                                 if (int.TryParse(fieldsValues[fieldValueIndex], out airlineObjectsCount))
-                                    Array.Resize(ref airlineObjects, airlineObjectsCount);
-                                airlineManager.AirlineObjects = airlineObjects;
+                                    airlineManager.Size = airlineObjectsCount;
                             }
+                            
                             continue;
                         }
                         if (Properties.Contains(fieldsValues[fieldNameIndex]))
@@ -368,7 +360,7 @@ namespace AirlineLibrary.Model
 
                     if (airlineObject.IsValid())
                     {
-                        AirlineObjects[index] = airlineObject;
+                        AirlineObjects.Add(airlineObject);
                         return true;
                     }
                 }
@@ -403,19 +395,23 @@ namespace AirlineLibrary.Model
 
             var searchArray = searchString.Trim().Split(' ');
 
-            if (searchArray.Length > 3)
+            if (searchArray.Length > 1 && Enum.IsDefined(typeof(ConditionalTypes), searchArray[1]))
             {
-                searchArray[2] = string.Join(" ", searchArray.Where((key, arg) => Convert.ToInt32(arg) > 1).ToArray());
-            }
 
-            if (searchArray.Length > 2)
-            {
-                for (int i = 0; i < searchArraySize; i++)
+                if (searchArray.Length > 3)
                 {
-                    searchCriteria[i] = searchArray[i].Trim();
+                    searchArray[2] = string.Join(" ", searchArray.Where((key, arg) => Convert.ToInt32(arg) > 1).ToArray());
                 }
-            }
 
+                if (searchArray.Length > 2)
+                {
+                    for (int i = 0; i < searchArraySize; i++)
+                    {
+                        searchCriteria[i] = searchArray[i].Trim();
+                    }
+                }
+
+            }
             return searchCriteria.Where(arg => arg != null).ToArray();
         }
 
@@ -433,7 +429,7 @@ namespace AirlineLibrary.Model
                 var id = 0;
                 if (int.TryParse(FieldsValuesUpdate[0][fieldValueIndex], out id))
                 {
-                    if (id > 0 && id < AirlineObjects.Length + 1)
+                    if (id > 0 && id < AirlineObjects.Count + 1)
                     {
                         id -= 1;
                         return Update(id, FieldsValuesUpdate.Where(arg => arg[fieldNameIndex] != "ID").ToArray());
@@ -529,7 +525,7 @@ namespace AirlineLibrary.Model
 
                 if (airlineObject.IsValid())
                 {
-                    objectId = Array.FindIndex(AirlineObjects, (arg) => arg.ID == airlineObject.ID);
+                    objectId = AirlineObjects.FindIndex((arg) => arg.ID == airlineObject.ID);
                     if (objectId > -1)
                     {
                         AirlineObjects[objectId] = airlineObject;
@@ -557,47 +553,80 @@ namespace AirlineLibrary.Model
             });
         }
 
-        const string errorValidationMessage = "The line above is invalid and object you are trying to manipulate won't be processed corectly. We strongly recommend you to press 'Enter' button and start the operation again!";
+        const string errorValidationMessage = "The line above is invalid and values were not saved. Please type the right values!";
 
-        public void ValidateOption(string line)
+        protected abstract Type GetElementType();
+
+        public bool ValidateOption(string line)
         {
             if (!string.IsNullOrWhiteSpace(line))
             {
                 var FieldsValuesSearch = GetAirlineObjectInfo(new string[] { line });
                 if (FieldsValuesSearch.Length > 0)
                 {
-                    var type = AirlineObjects.GetType().GetElementType();
+                    var type = GetElementType();
                     var airlineObject = Activator.CreateInstance(type) as AirlineObject;
                     try
                     {
-                        var fieldType = airlineObject[FieldsValuesSearch[0][fieldNameIndex]].GetType();
-
-                        var value = new object();
+                        var field = FieldsValuesSearch[0][fieldNameIndex];
                         var lineValue = FieldsValuesSearch[0][fieldValueIndex];
-                        if (fieldType.IsEnum)
+                        if (string.Equals(field, "Count") || string.Equals(field, "ID"))
                         {
-                            var enumString = char.ToUpper(lineValue[0]) + lineValue.Substring(1).ToLower();
-                            value = Enum.Parse(fieldType, enumString);
+                            int.Parse(lineValue);
+                            return true;
                         }
-                        else
+                        var originalAirlineObject = airlineObject;
+                        var isAlreadyProcessed = false;
+                    secondChance:
+                        Type fieldType = null;
+                        try
                         {
-                            switch (Type.GetTypeCode(fieldType))
+                            fieldType = airlineObject[field].GetType();
+
+                            var value = new object();
+
+                            if (fieldType.IsEnum)
                             {
-                                case TypeCode.Int32:
-                                    value = Convert.ToInt32(lineValue);
-                                    break;
-                                case TypeCode.DateTime:
-                                    value = Convert.ToDateTime(lineValue);
-                                    break;
-                                default:
-                                    value = lineValue;
-                                    break;
+                                var enumString = char.ToUpper(lineValue[0]) + lineValue.Substring(1).ToLower();
+                                value = Enum.Parse(fieldType, enumString);
+                            }
+                            else
+                            {
+                                switch (Type.GetTypeCode(fieldType))
+                                {
+                                    case TypeCode.Int32:
+                                        value = Convert.ToInt32(lineValue);
+                                        break;
+                                    case TypeCode.DateTime:
+                                        value = Convert.ToDateTime(lineValue);
+                                        break;
+                                    default:
+                                        value = lineValue;
+                                        break;
+                                }
+                            }
+
+                            airlineObject[field] = value;
+                            if (!object.Equals(airlineObject[field], value))
+                                RaiseErrorMessage(errorValidationMessage);
+                            else
+                                return true;
+                        }
+                        catch
+                        {
+                            if (!isAlreadyProcessed)
+                            {
+                                isAlreadyProcessed = true;
+                                var passanger = airlineObject as Passenger;
+                                if (passanger != null)
+                                {
+                                    airlineObject = passanger.Ticket;
+                                    goto secondChance;
+                                }
                             }
                         }
+                        airlineObject = originalAirlineObject;
 
-                        airlineObject[FieldsValuesSearch[0][fieldNameIndex]] = value;
-                        if (!object.Equals(airlineObject[FieldsValuesSearch[0][fieldNameIndex]], value))
-                            RaiseErrorMessage(errorValidationMessage);
 
 
                     }
@@ -610,7 +639,7 @@ namespace AirlineLibrary.Model
                 else
                     RaiseErrorMessage(errorValidationMessage);
             }
-
+            return false;
         }
 
         //abstract void ValidateOption(string[][] fieldsValuesSearch);
