@@ -1,10 +1,12 @@
 ﻿
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -697,4 +699,36 @@ namespace AirlineLibrary.Model
             return prop;
         }
     }
+
+    public class AirlineManagerConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return (objectType == typeof(AirlineObject));
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            JObject jo = JObject.Load(reader);
+
+            JToken jToken;
+            if (jo.TryGetValue("Number", out jToken))
+                return jo.ToObject<Flight>(serializer);
+            else
+                return jo.ToObject<Passenger>(serializer);
+
+            //return null;
+        }
+
+        public override bool CanWrite
+        {
+            get { return false; }
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
 }

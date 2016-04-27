@@ -29,6 +29,7 @@ namespace AirlineLibrary.Model
             Options = new List<AirlineOptions>();
             Options.AddRange(s_general);
 
+            //AirlineObjects = new List<AirlineObject>();
             AirlineObjects = new List<AirlineObject>();
 
             CurrentAirlineManager = this;
@@ -366,12 +367,14 @@ namespace AirlineLibrary.Model
                     string text = File.ReadAllText(path);
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        //AirlineObjects = JsonConvert.DeserializeObject<List<Flight>>(text, new JsonSerializerSettings { ContractResolver = new AirlineManagerContractResolver() });
-                        AirlineObjects = JsonConvert.DeserializeObject<List<AirlineObject>>(text, new JsonSerializerSettings { ContractResolver = new AirlineManagerContractResolver() });
+                        AirlineObjects = JsonConvert.DeserializeObject<List<AirlineObject>>(text, new JsonSerializerSettings
+                        {
+                            Converters = new JsonConverter[] { new AirlineManagerConverter() }                        
+                        });
                         return true;
                     }
                 }
-                catch { throw; }
+                catch(Exception ex) { throw; }
             }
             return false;
         }
